@@ -48,16 +48,11 @@ class MainActivity : Activity() {
     )
 
     private val questions = listOf(
-        Question("What does Apple mean?",
-            listOf("كتاب", "تفاحة", "ماء"), 1),
-        Question("What does Book mean?",
-            listOf("كتاب", "قلم", "باب"), 0),
-        Question("How are you?",
-            listOf("إلى اللقاء", "كم عمرك؟", "كيف حالك؟"), 2),
-        Question("What does Beautiful mean?",
-            listOf("سريع", "جميل", "صغير"), 1),
-        Question("What does Water mean?",
-            listOf("ماء", "طعام", "منزل"), 0)
+        Question("What does Apple mean?", listOf("كتاب", "تفاحة", "ماء"), 1),
+        Question("What does Book mean?", listOf("كتاب", "قلم", "باب"), 0),
+        Question("How are you?", listOf("إلى اللقاء", "كم عمرك؟", "كيف حالك؟"), 2),
+        Question("What does Beautiful mean?", listOf("سريع", "جميل", "صغير"), 1),
+        Question("What does Water mean?", listOf("ماء", "طعام", "منزل"), 0)
     )
 
     private val levelLessons = mapOf(
@@ -96,13 +91,55 @@ class MainActivity : Activity() {
 
         tts = TextToSpeech(this) { status ->
             if (status == TextToSpeech.SUCCESS) {
-                val result = tts?.setLanguage(Locale.US)
-                ttsReady = result != TextToSpeech.LANG_MISSING_DATA &&
+                val engine = tts
+
+                if (engine != null) {
+                    val result = engine.setLanguage(Locale.US)
+
+                    ttsReady =
+                        result != TextToSpeech.LANG_MISSING_DATA &&
                         result != TextToSpeech.LANG_NOT_SUPPORTED
+
+                    if (ttsReady) {
+                        configureNaturalVoice(engine)
+                    }
+                }
             }
         }
 
         showHome()
+    }
+
+    private fun configureNaturalVoice(engine: TextToSpeech) {
+        try {
+            val voices = engine.voices.orEmpty()
+
+            val usVoices = voices.filter {
+                it.locale.language == "en" &&
+                it.locale.country == "US"
+            }
+
+            val femaleVoice = usVoices
+                .filter {
+                    it.name.contains("female", ignoreCase = true) ||
+                    it.name.contains("woman", ignoreCase = true)
+                }
+                .maxByOrNull {
+                    it.quality
+                }
+
+            if (femaleVoice != null) {
+                engine.voice = femaleVoice
+            }
+
+            engine.setSpeechRate(0.92f)
+            engine.setPitch(1.0f)
+
+        } catch (e: Exception) {
+            engine.setLanguage(Locale.US)
+            engine.setSpeechRate(0.92f)
+            engine.setPitch(1.0f)
+        }
     }
 
     private fun speak(text: String) {
@@ -232,8 +269,6 @@ class MainActivity : Activity() {
         parent.addView(card, params)
     }
 
-    // صيغة الزر الافتراضية: اللون الأزرق
-    // هذا الإصلاح يعالج استدعاءات الأزرار باستخدام trailing lambda.
     private fun addButton(
         parent: LinearLayout,
         label: String,
@@ -242,7 +277,6 @@ class MainActivity : Activity() {
         addButton(parent, label, action, blue)
     }
 
-    // صيغة الزر مع لون مخصص
     private fun addButton(
         parent: LinearLayout,
         label: String,
@@ -416,6 +450,7 @@ class MainActivity : Activity() {
 
         addButton(p, "تحديد الدرس كمكتمل", {
             val oldCount = preferences.getInt("completed_lessons", 0)
+
             preferences.edit()
                 .putInt("completed_lessons", oldCount + 1)
                 .apply()
@@ -625,6 +660,7 @@ class MainActivity : Activity() {
 
     private fun showQuizResult() {
         val oldScore = preferences.getInt("quiz_score", 0)
+
         preferences.edit()
             .putInt("quiz_score", oldScore + quizScore)
             .apply()
