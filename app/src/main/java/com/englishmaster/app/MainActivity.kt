@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.speech.tts.TextToSpeech
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
@@ -13,40 +14,171 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import java.util.Locale
 
 class MainActivity : Activity() {
 
     private val blue = Color.rgb(35, 91, 160)
     private val dark = Color.rgb(30, 45, 65)
-    private val background = Color.rgb(245, 248, 253)
+    private val pageBackgroundColor = Color.rgb(245, 248, 253)
+    private val green = Color.rgb(35, 145, 105)
+    private val orange = Color.rgb(230, 145, 45)
+
+    private var tts: TextToSpeech? = null
+    private var ttsReady = false
+
+    private var currentLevel = "A1"
+    private var quizIndex = 0
+    private var quizScore = 0
+    private var quizAnswered = false
+
+    private val preferences by lazy {
+        getSharedPreferences("english_master_data", MODE_PRIVATE)
+    }
+
+    private data class LessonExample(
+        val english: String,
+        val arabic: String
+    )
+
+    private data class Question(
+        val question: String,
+        val answers: List<String>,
+        val correct: Int
+    )
+
+    private val questions = listOf(
+        Question("What does Apple mean?",
+            listOf("كتاب", "تفاحة", "ماء"), 1),
+        Question("What does Book mean?",
+            listOf("كتاب", "قلم", "باب"), 0),
+        Question("How are you?",
+            listOf("إلى اللقاء", "كم عمرك؟", "كيف حالك؟"), 2),
+        Question("What does Beautiful mean?",
+            listOf("سريع", "جميل", "صغير"), 1),
+        Question("What does Water mean?",
+            listOf("ماء", "طعام", "منزل"), 0)
+    )
+
+    private val levelLessons = mapOf(
+        "A1" to listOf(
+            "التحيات والتعارف",
+            "الحروف والأرقام",
+            "الأسرة والأصدقاء",
+            "الألوان والأشياء",
+            "الأيام والوقت"
+        ),
+        "A2" to listOf(
+            "الحياة اليومية",
+            "الطعام والشراب",
+            "التسوق",
+            "وصف الأماكن",
+            "الماضي البسيط"
+        ),
+        "B1" to listOf(
+            "التعبير عن الرأي",
+            "السفر والعمل",
+            "الأزمنة الإنجليزية",
+            "المواقف اليومية",
+            "كتابة الفقرات"
+        ),
+        "B2" to listOf(
+            "المحادثات المتقدمة",
+            "القواعد المتقدمة",
+            "التعبير عن الأفكار",
+            "القراءة والفهم",
+            "الكتابة المتقدمة"
+        )
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        tts = TextToSpeech(this) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                val result = tts?.setLanguage(Locale.US)
+                ttsReady = result != TextToSpeech.LANG_MISSING_DATA &&
+                        result != TextToSpeech.LANG_NOT_SUPPORTED
+            }
+        }
+
         showHome()
+    }
+
+    private fun speak(text: String) {
+        if (ttsReady) {
+            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "english_master")
+        } else {
+            Toast.makeText(
+                this,
+                "خدمة النطق غير جاهزة. تحقق من تثبيت محرك تحويل النص إلى كلام.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private fun dp(value: Int): Int {
+        return (value * resources.displayMetrics.density).toInt()
     }
 
     private fun page(title: String, subtitle: String): LinearLayout {
         val scroll = ScrollView(this)
+
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(24), dp(20), dp(30))
-            setBackgroundColor(background)
+            setPadding(dp(18), dp(22), dp(18), dp(30))
+            setBackgroundColor(pageBackgroundColor)
         }
 
         scroll.addView(content)
         setContentView(scroll)
 
-        addText(content, title, 27, blue, true)
-        addText(content, subtitle, 15, dark, false)
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), dp(16), dp(18), dp(16))
+            background = rounded(blue, 20)
+        }
+
+        val titleView = TextView(this).apply {
+            text = title
+            textSize = 25f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.RIGHT
+        }
+
+        val subtitleView = TextView(this).apply {
+            text = subtitle
+            textSize = 14f
+            setTextColor(Color.WHITE)
+            gravity = Gravity.RIGHT
+            setPadding(0, dp(7), 0, 0)
+        }
+
+        header.addView(titleView)
+        header.addView(subtitleView)
+
+        content.addView(header)
+
         return content
+    }
+
+    private fun rounded(
+        color: Int,
+        radius: Int = 15
+    ): GradientDrawable {
+        return GradientDrawable().apply {
+            setColor(color)
+            cornerRadius = dp(radius).toFloat()
+        }
     }
 
     private fun addText(
         parent: LinearLayout,
         value: String,
-        size: Int,
-        color: Int,
-        bold: Boolean
+        size: Int = 16,
+        color: Int = dark,
+        bold: Boolean = false
     ) {
         val view = TextView(this).apply {
             text = value
@@ -54,9 +186,14 @@ class MainActivity : Activity() {
             setTextColor(color)
             gravity = Gravity.RIGHT
             textDirection = View.TEXT_DIRECTION_FIRST_STRONG
-            typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-            setPadding(0, dp(10), 0, dp(10))
+            typeface = if (bold) {
+                Typeface.DEFAULT_BOLD
+            } else {
+                Typeface.DEFAULT
+            }
+            setPadding(dp(2), dp(9), dp(2), dp(9))
         }
+
         parent.addView(view)
     }
 
@@ -74,10 +211,11 @@ class MainActivity : Activity() {
                 cornerRadius = dp(16).toFloat()
                 setStroke(dp(1), Color.rgb(225, 232, 243))
             }
+            elevation = dp(2).toFloat()
         }
 
-        addText(card, title, 19, blue, true)
-        addText(card, description, 14, dark, false)
+        addText(card, title, 18, blue, true)
+        addText(card, description, 14, dark)
 
         card.setOnClickListener { action() }
 
@@ -85,56 +223,107 @@ class MainActivity : Activity() {
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         )
-        params.setMargins(0, dp(7), 0, dp(7))
+
+        params.setMargins(0, dp(6), 0, dp(6))
         parent.addView(card, params)
     }
 
     private fun addButton(
         parent: LinearLayout,
         label: String,
-        action: () -> Unit
+        action: () -> Unit,
+        color: Int = blue
     ) {
         val button = Button(this).apply {
             text = label
             isAllCaps = false
+            textSize = 15f
             setTextColor(Color.WHITE)
-            textSize = 16f
-            background = GradientDrawable().apply {
-                setColor(blue)
-                cornerRadius = dp(12).toFloat()
-            }
+            background = rounded(color, 13)
             setOnClickListener { action() }
         }
 
         val params = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
-            dp(55)
+            dp(53)
         )
-        params.setMargins(0, dp(6), 0, dp(6))
+
+        params.setMargins(0, dp(5), 0, dp(5))
         parent.addView(button, params)
+    }
+
+    private fun addSpeakCard(
+        parent: LinearLayout,
+        english: String,
+        arabic: String
+    ) {
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(15), dp(10), dp(15), dp(10))
+            background = GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = dp(14).toFloat()
+                setStroke(dp(1), Color.rgb(225, 232, 243))
+            }
+        }
+
+        addText(card, english, 19, blue, true)
+        addText(card, arabic, 15, dark)
+
+        addButton(card, "🔊 استمع إلى النطق", {
+            speak(english)
+        }, green)
+
+        val params = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+
+        params.setMargins(0, dp(6), 0, dp(6))
+        parent.addView(card, params)
     }
 
     private fun showHome() {
         val p = page(
-            "English Master",
+            "EnglishMaster",
             "تعلم الإنجليزية من الصفر حتى الاحتراف"
         )
 
         addText(p, "مرحباً بك! 👋", 23, dark, true)
+
         addText(
             p,
-            "ابدأ رحلتك في تعلم اللغة الإنجليزية خطوة بخطوة.",
-            16, dark, false
+            "ابدأ رحلتك اليوم، وتعلم الإنجليزية خطوة بخطوة.",
+            16
         )
 
-        addText(p, "اختر مستواك", 21, blue, true)
+        val completed = preferences.getInt("completed_lessons", 0)
+        val score = preferences.getInt("quiz_score", 0)
 
-        listOf("A1" to "مبتدئ",
-            "A2" to "مبتدئ متقدم",
-            "B1" to "متوسط",
-            "B2" to "متوسط متقدم"
-        ).forEach { (level, name) ->
-            addCard(p, level, name) {
+        addCard(
+            p,
+            "إنجازاتك الحالية",
+            "الدروس المكتملة: $completed | نقاط الاختبارات: $score"
+        ) {
+            showProgress()
+        }
+
+        addText(p, "اختر مستواك التعليمي", 21, blue, true)
+
+        val levels = listOf(
+            Triple("A1", "مبتدئ", "ابدأ من الأساسيات"),
+            Triple("A2", "مبتدئ متقدم", "طور مهاراتك اليومية"),
+            Triple("B1", "متوسط", "تحدث بثقة أكبر"),
+            Triple("B2", "متوسط متقدم", "انتقل إلى الإنجليزية المتقدمة")
+        )
+
+        levels.forEach { (level, name, description) ->
+            addCard(
+                p,
+                "$level - $name",
+                description
+            ) {
+                currentLevel = level
                 showLevel(level)
             }
         }
@@ -142,13 +331,13 @@ class MainActivity : Activity() {
         addText(p, "أقسام التعلم", 21, blue, true)
 
         val sections = listOf(
-            "المفردات" to "تعلم كلمات إنجليزية ومعانيها",
-            "المحادثات" to "تعلم الحوارات اليومية",
-            "القواعد" to "افهم قواعد اللغة الإنجليزية",
-            "القصص" to "اقرأ قصصاً باللغة الإنجليزية",
-            "الاستماع" to "تدرب على فهم الجمل الإنجليزية",
+            "المفردات" to "تعلم كلمات جديدة",
+            "المحادثات" to "تدرب على الحوار",
+            "القواعد" to "تعلم قواعد الإنجليزية",
+            "القصص" to "اقرأ قصصاً قصيرة",
+            "الاستماع" to "استمع إلى الجمل الإنجليزية",
             "الاختبارات" to "اختبر معلوماتك",
-            "تقدمي" to "تابع تقدمك في التعلم"
+            "تقدمي" to "تابع إنجازاتك"
         )
 
         sections.forEach { (name, description) ->
@@ -160,162 +349,342 @@ class MainActivity : Activity() {
         addText(
             p,
             "كل يوم خطوة جديدة نحو إتقان الإنجليزية ❤️",
-            15, blue, true
+            15,
+            blue,
+            true
         )
     }
 
     private fun showLevel(level: String) {
         val p = page(
             "المستوى $level",
-            "اختر درساً وابدأ التعلم"
+            "اختر الدرس الذي تريد تعلمه"
         )
 
-        val lessons = when (level) {
-            "A1" -> listOf(
-                "التحيات والتعارف",
-                "الحروف والأرقام",
-                "الأسرة والأصدقاء",
-                "الألوان والأشياء",
-                "الأيام والوقت"
-            )
-            "A2" -> listOf(
-                "الحياة اليومية",
-                "الطعام والشراب",
-                "التسوق",
-                "وصف الأماكن",
-                "الماضي البسيط"
-            )
-            "B1" -> listOf(
-                "التعبير عن الرأي",
-                "السفر والعمل",
-                "الأزمنة الإنجليزية",
-                "المواقف اليومية",
-                "كتابة الفقرات"
-            )
-            else -> listOf(
-                "المحادثات المتقدمة",
-                "القواعد المتقدمة",
-                "التعبير عن الأفكار",
-                "القراءة والفهم",
-                "الكتابة المتقدمة"
-            )
-        }
+        val lessons = levelLessons[level] ?: emptyList()
 
         lessons.forEachIndexed { index, lesson ->
-            addCard(p, "الدرس ${index + 1}: $lesson",
-                "اضغط لفتح الدرس") {
-                showLesson(lesson)
+            addCard(
+                p,
+                "الدرس ${index + 1}: $lesson",
+                "افتح الدرس وتعلم كلمات وجملاً جديدة"
+            ) {
+                showLesson(level, lesson)
             }
         }
 
-        addButton(p, "العودة للرئيسية") { showHome() }
+        addButton(p, "العودة للرئيسية") {
+            showHome()
+        }
+    }
+
+    private fun showLesson(level: String, lesson: String) {
+        val p = page(
+            lesson,
+            "المستوى $level | تعلم واستمع وكرر"
+        )
+
+        val examples = listOf(
+            LessonExample("Hello", "مرحباً"),
+            LessonExample("How are you?", "كيف حالك؟"),
+            LessonExample("I am fine.", "أنا بخير"),
+            LessonExample("Thank you.", "شكراً لك"),
+            LessonExample("Nice to meet you.", "سعيد بلقائك"),
+            LessonExample("Goodbye.", "إلى اللقاء")
+        )
+
+        addText(p, "الكلمات والجمل التعليمية", 20, blue, true)
+
+        examples.forEach {
+            addSpeakCard(p, it.english, it.arabic)
+        }
+
+        addButton(p, "تحديد الدرس كمكتمل", {
+            val oldCount = preferences.getInt("completed_lessons", 0)
+            preferences.edit()
+                .putInt("completed_lessons", oldCount + 1)
+                .apply()
+
+            Toast.makeText(
+                this,
+                "أحسنت! تم حفظ إنجازك 🎉",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            showLevel(level)
+        }, green)
+
+        addButton(p, "العودة للدروس") {
+            showLevel(level)
+        }
+
+        addButton(p, "الرئيسية") {
+            showHome()
+        }
     }
 
     private fun showSection(name: String) {
-        if (name == "الاختبارات") {
-            showQuiz()
-            return
-        }
+        when (name) {
+            "الاختبارات" -> {
+                showQuiz()
+                return
+            }
 
-        val p = page(name, "تعلم وتدرب على اللغة الإنجليزية")
-
-        val content = when (name) {
-            "المفردات" -> listOf(
-                "Hello = مرحباً",
-                "Good morning = صباح الخير",
-                "Book = كتاب",
-                "Water = ماء",
-                "Friend = صديق",
-                "Beautiful = جميل"
-            )
-            "المحادثات" -> listOf(
-                "Hello! How are you? = مرحباً، كيف حالك؟",
-                "I am fine, thank you. = أنا بخير، شكراً.",
-                "What is your name? = ما اسمك؟",
-                "My name is Ahmed. = اسمي أحمد."
-            )
-            "القواعد" -> listOf(
-                "I am = أنا أكون",
-                "You are = أنت تكون",
-                "He is = هو يكون",
-                "She is = هي تكون",
-                "I have = أنا أملك"
-            )
-            "القصص" -> listOf(
-                "My name is Adam.",
-                "I am a student.",
-                "I live with my family.",
-                "I love learning English."
-            )
-            "الاستماع" -> listOf(
-                "مرحباً بك في قسم الاستماع.",
-                "تدرب على قراءة الجمل الإنجليزية.",
-                "سيتم تطوير تمارين الصوت في مرحلة لاحقة."
-            )
-            else -> emptyList()
-        }
-
-        content.forEachIndexed { index, item ->
-            addCard(p, "تمرين ${index + 1}", item) {
-                Toast.makeText(this, item, Toast.LENGTH_SHORT).show()
+            "تقدمي" -> {
+                showProgress()
+                return
             }
         }
 
-        addButton(p, "العودة للرئيسية") { showHome() }
-    }
-
-    private fun showLesson(lesson: String) {
-        val p = page(lesson, "درس تعليمي للمبتدئين")
-
-        val examples = listOf(
-            "Hello = مرحباً",
-            "How are you? = كيف حالك؟",
-            "I am fine = أنا بخير",
-            "Thank you = شكراً لك",
-            "Goodbye = إلى اللقاء"
+        val p = page(
+            name,
+            "تعلم الإنجليزية بطريقة عملية"
         )
 
-        examples.forEachIndexed { index, example ->
-            addCard(p, "مثال ${index + 1}", example) {
-                Toast.makeText(this, example, Toast.LENGTH_SHORT).show()
+        when (name) {
+            "المفردات" -> {
+                addText(p, "كلمات إنجليزية أساسية", 20, blue, true)
+
+                val words = listOf(
+                    "Hello" to "مرحباً",
+                    "Book" to "كتاب",
+                    "Water" to "ماء",
+                    "Friend" to "صديق",
+                    "Beautiful" to "جميل",
+                    "House" to "منزل",
+                    "School" to "مدرسة",
+                    "Family" to "عائلة",
+                    "Teacher" to "معلم",
+                    "Happy" to "سعيد",
+                    "Learn" to "يتعلم",
+                    "Important" to "مهم"
+                )
+
+                words.forEach { (english, arabic) ->
+                    addSpeakCard(p, english, arabic)
+                }
+            }
+
+            "المحادثات" -> {
+                addText(p, "محادثة التعارف", 20, blue, true)
+
+                val conversation = listOf(
+                    LessonExample("Hello! How are you?", "مرحباً! كيف حالك؟"),
+                    LessonExample("I am fine, thank you.", "أنا بخير، شكراً لك."),
+                    LessonExample("What is your name?", "ما اسمك؟"),
+                    LessonExample("My name is Ahmed.", "اسمي أحمد."),
+                    LessonExample("Nice to meet you.", "سعيد بلقائك.")
+                )
+
+                conversation.forEach {
+                    addSpeakCard(p, it.english, it.arabic)
+                }
+            }
+
+            "القواعد" -> {
+                addText(p, "قاعدة Verb To Be", 20, blue, true)
+
+                val rules = listOf(
+                    LessonExample("I am a student.", "أنا طالب."),
+                    LessonExample("You are happy.", "أنت سعيد."),
+                    LessonExample("He is a teacher.", "هو معلم."),
+                    LessonExample("She is beautiful.", "هي جميلة."),
+                    LessonExample("We are friends.", "نحن أصدقاء."),
+                    LessonExample("They are students.", "هم طلاب.")
+                )
+
+                rules.forEach {
+                    addSpeakCard(p, it.english, it.arabic)
+                }
+
+                addText(
+                    p,
+                    "تذكر: نستخدم am مع I، وis مع He وShe، وare مع You وWe وThey.",
+                    15,
+                    dark
+                )
+            }
+
+            "القصص" -> {
+                addText(p, "قصة: My Daily Life", 20, blue, true)
+
+                val story = listOf(
+                    LessonExample("My name is Adam.", "اسمي آدم."),
+                    LessonExample("I am a student.", "أنا طالب."),
+                    LessonExample("I wake up early.", "أستيقظ مبكراً."),
+                    LessonExample("I go to school.", "أذهب إلى المدرسة."),
+                    LessonExample("I love learning English.", "أحب تعلم الإنجليزية.")
+                )
+
+                story.forEach {
+                    addSpeakCard(p, it.english, it.arabic)
+                }
+            }
+
+            "الاستماع" -> {
+                addText(p, "تمارين الاستماع والنطق", 20, blue, true)
+
+                addText(
+                    p,
+                    "اضغط على زر الاستماع لسماع الجملة، ثم حاول تكرارها بصوتك.",
+                    15
+                )
+
+                val listening = listOf(
+                    LessonExample("Good morning!", "صباح الخير!"),
+                    LessonExample("Where are you from?", "من أين أنت؟"),
+                    LessonExample("I speak English.", "أنا أتحدث الإنجليزية."),
+                    LessonExample("I want to learn.", "أريد أن أتعلم."),
+                    LessonExample("Practice makes perfect.", "الممارسة تؤدي إلى الإتقان.")
+                )
+
+                listening.forEach {
+                    addSpeakCard(p, it.english, it.arabic)
+                }
             }
         }
 
-        addButton(p, "العودة للدروس") {
-            showLevel("A1")
+        addButton(p, "العودة للرئيسية") {
+            showHome()
         }
-        addButton(p, "الرئيسية") { showHome() }
     }
 
     private fun showQuiz() {
-        val p = page(
-            "اختبار الإنجليزية",
-            "اختر الإجابة الصحيحة"
-        )
-
-        addText(p, "ما معنى كلمة Apple؟", 21, dark, true)
-
-        val answers = listOf(
-            "كتاب" to false,
-            "تفاحة" to true,
-            "ماء" to false
-        )
-
-        answers.forEach { (answer, correct) ->
-            addButton(p, answer) {
-                val message = if (correct) {
-                    "إجابة صحيحة! أحسنت 🎉"
-                } else {
-                    "إجابة غير صحيحة، حاول مرة أخرى."
-                }
-                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        addButton(p, "العودة للرئيسية") { showHome() }
+        quizIndex = 0
+        quizScore = 0
+        quizAnswered = false
+        showQuizQuestion()
     }
 
-    private fun dp(value: Int): Int {
-        return (value * resources.displayMetrics.density).toInt()
+    private fun showQuizQuestion() {
+        val p = page(
+            "اختبار الإنجليزية",
+            "السؤال ${quizIndex + 1} من ${questions.size}"
+        )
+
+        if (quizIndex >= questions.size) {
+            showQuizResult()
+            return
+        }
+
+        val question = questions[quizIndex]
+
+        addText(p, "اختر الإجابة الصحيحة:", 19, blue, true)
+        addText(p, question.question, 23, dark, true)
+
+        question.answers.forEachIndexed { index, answer ->
+            addButton(p, answer, {
+                if (!quizAnswered) {
+                    quizAnswered = true
+
+                    if (index == question.correct) {
+                        quizScore++
+                        addText(p, "إجابة صحيحة! أحسنت 🎉", 18, green, true)
+                    } else {
+                        addText(
+                            p,
+                            "إجابة غير صحيحة. الجواب: ${question.answers[question.correct]}",
+                            16,
+                            orange,
+                            true
+                        )
+                    }
+
+                    addButton(p, "السؤال التالي", {
+                        quizIndex++
+                        quizAnswered = false
+                        showQuizQuestion()
+                    }, green)
+                }
+            })
+        }
+
+        addButton(p, "إنهاء الاختبار", {
+            showQuizResult()
+        }, orange)
+
+        addButton(p, "الرئيسية") {
+            showHome()
+        }
+    }
+
+    private fun showQuizResult() {
+        val oldScore = preferences.getInt("quiz_score", 0)
+        preferences.edit()
+            .putInt("quiz_score", oldScore + quizScore)
+            .apply()
+
+        val p = page(
+            "نتيجة الاختبار",
+            "انتهيت من جميع الأسئلة"
+        )
+
+        addText(p, "أحسنت! 🎉", 25, green, true)
+
+        addText(
+            p,
+            "إجاباتك الصحيحة: $quizScore من ${questions.size}",
+            21,
+            dark,
+            true
+        )
+
+        addText(
+            p,
+            "نسبتك: ${quizScore * 100 / questions.size}%",
+            20,
+            blue,
+            true
+        )
+
+        addButton(p, "إعادة الاختبار") {
+            showQuiz()
+        }
+
+        addButton(p, "الرئيسية") {
+            showHome()
+        }
+    }
+
+    private fun showProgress() {
+        val p = page(
+            "تقدمي في التعلم",
+            "إنجازاتك محفوظة على هاتفك"
+        )
+
+        val completed = preferences.getInt("completed_lessons", 0)
+        val score = preferences.getInt("quiz_score", 0)
+
+        addCard(
+            p,
+            "الدروس المكتملة",
+            "$completed درس"
+        ) {}
+
+        addCard(
+            p,
+            "مجموع نقاط الاختبارات",
+            "$score نقطة"
+        ) {}
+
+        addText(p, "نصيحة اليوم", 20, blue, true)
+
+        addText(
+            p,
+            "خصص وقتاً يومياً لتعلم خمس كلمات جديدة والاستماع إلى جمل إنجليزية.",
+            16,
+            dark
+        )
+
+        addButton(p, "العودة للرئيسية") {
+            showHome()
+        }
+    }
+
+    override fun onDestroy() {
+        tts?.stop()
+        tts?.shutdown()
+        tts = null
+        super.onDestroy()
     }
 }
