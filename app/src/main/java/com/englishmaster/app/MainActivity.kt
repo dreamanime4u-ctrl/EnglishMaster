@@ -107,7 +107,12 @@ class MainActivity : Activity() {
 
     private fun speak(text: String) {
         if (ttsReady) {
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "english_master")
+            tts?.speak(
+                text,
+                TextToSpeech.QUEUE_FLUSH,
+                null,
+                "english_master"
+            )
         } else {
             Toast.makeText(
                 this,
@@ -157,7 +162,6 @@ class MainActivity : Activity() {
 
         header.addView(titleView)
         header.addView(subtitleView)
-
         content.addView(header)
 
         return content
@@ -228,11 +232,22 @@ class MainActivity : Activity() {
         parent.addView(card, params)
     }
 
+    // صيغة الزر الافتراضية: اللون الأزرق
+    // هذا الإصلاح يعالج استدعاءات الأزرار باستخدام trailing lambda.
+    private fun addButton(
+        parent: LinearLayout,
+        label: String,
+        action: () -> Unit
+    ) {
+        addButton(parent, label, action, blue)
+    }
+
+    // صيغة الزر مع لون مخصص
     private fun addButton(
         parent: LinearLayout,
         label: String,
         action: () -> Unit,
-        color: Int = blue
+        color: Int
     ) {
         val button = Button(this).apply {
             text = label
