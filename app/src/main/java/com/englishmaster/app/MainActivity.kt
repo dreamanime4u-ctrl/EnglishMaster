@@ -351,12 +351,70 @@ class MainActivity : Activity() {
         parent.addView(view)
     }
 
-    private fun addButton(
-        parent: LinearLayout,
-        text: String,
-        color: Int = blue,
-        action: () -> Unit
-    ) {
+    
+private fun addButton(
+    parent: LinearLayout,
+    text: String,
+    color: Int = blue,
+    action: () -> Unit
+) {
+    val button = Button(this)
+    button.text = text
+    button.textSize = 18f
+    button.isAllCaps = false
+    button.setTextColor(Color.WHITE)
+    button.typeface = Typeface.DEFAULT_BOLD
+    button.gravity = Gravity.CENTER
+    button.setPadding(dp(12), dp(8), dp(12), dp(8))
+
+    val colors = when (color) {
+        green -> intArrayOf(
+            Color.rgb(130, 255, 40),
+            Color.rgb(25, 190, 20),
+            Color.rgb(0, 125, 15)
+        )
+        orange -> intArrayOf(
+            Color.rgb(255, 220, 35),
+            Color.rgb(255, 150, 0),
+            Color.rgb(225, 85, 0)
+        )
+        purple -> intArrayOf(
+            Color.rgb(220, 125, 255),
+            Color.rgb(155, 45, 230),
+            Color.rgb(95, 15, 165)
+        )
+        else -> intArrayOf(
+            Color.rgb(80, 205, 255),
+            Color.rgb(20, 115, 250),
+            Color.rgb(0, 55, 180)
+        )
+    }
+
+    val background = android.graphics.drawable.GradientDrawable(
+        android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+        colors
+    )
+
+    background.cornerRadius = dp(30).toFloat()
+    background.setStroke(dp(3), Color.WHITE)
+
+    button.background = background
+    button.elevation = dp(7).toFloat()
+    button.setShadowLayer(dp(2).toFloat(), 0f, dp(2).toFloat(), Color.BLACK)
+
+    button.setOnClickListener {
+        action()
+    }
+
+    val params = LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT,
+        dp(64)
+    )
+
+    params.setMargins(0, dp(7), 0, dp(7))
+    parent.addView(button, params)
+}
+
         val button = Button(this)
         button.text = text
         button.textSize = 16f
