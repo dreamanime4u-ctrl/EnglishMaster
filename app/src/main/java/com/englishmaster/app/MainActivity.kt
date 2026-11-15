@@ -25,11 +25,11 @@ class MainActivity : Activity() {
         getSharedPreferences("english_master_data", MODE_PRIVATE)
     }
 
-    private val blue = Color.rgb(55, 115, 230)
+    private val blue = Color.rgb(40, 115, 235)
     private val darkBlue = Color.rgb(35, 65, 125)
-    private val pageColor = Color.rgb(244, 248, 255)
-    private val green = Color.rgb(65, 180, 120)
-    private val orange = Color.rgb(255, 165, 65)
+    private val pageColor = Color.rgb(235, 247, 255)
+    private val green = Color.rgb(65, 185, 85)
+    private val orange = Color.rgb(255, 165, 45)
     private val purple = Color.rgb(145, 105, 220)
     private val textColor = Color.rgb(45, 55, 75)
 
@@ -44,19 +44,42 @@ class MainActivity : Activity() {
         val words: List<Word>
     )
 
+    private var currentCategory: Category? = null
+    private var currentWordIndex = 0
+
+    private var quizIndex = 0
+    private var quizScore = 0
+    private var quizQuestions: List<Word> = emptyList()
+
     private val alphabet = Category(
         "Alphabet", "🔤",
         listOf(
-            Word("🍎", "A - Apple"),
-            Word("⚽", "B - Ball"),
-            Word("🐱", "C - Cat"),
+            Word("🅰️", "A - Apple"),
+            Word("🅱️", "B - Ball"),
+            Word("🌙", "C - Cat"),
             Word("🐶", "D - Dog"),
             Word("🥚", "E - Egg"),
             Word("🐟", "F - Fish"),
             Word("🍇", "G - Grapes"),
             Word("🏠", "H - House"),
             Word("🍦", "I - Ice cream"),
-            Word("🧃", "J - Juice")
+            Word("🧃", "J - Juice"),
+            Word("🪁", "K - Kite"),
+            Word("🦁", "L - Lion"),
+            Word("🌙", "M - Moon"),
+            Word("🪺", "N - Nest"),
+            Word("🐙", "O - Octopus"),
+            Word("✏️", "P - Pencil"),
+            Word("👑", "Q - Queen"),
+            Word("🌈", "R - Rainbow"),
+            Word("☀️", "S - Sun"),
+            Word("🐢", "T - Turtle"),
+            Word("☂️", "U - Umbrella"),
+            Word("🚐", "V - Van"),
+            Word("⌚", "W - Watch"),
+            Word("❌", "X - X-ray"),
+            Word("🪀", "Y - Yo-yo"),
+            Word("🦓", "Z - Zebra")
         )
     )
 
@@ -72,7 +95,17 @@ class MainActivity : Activity() {
             Word("7️⃣", "Seven"),
             Word("8️⃣", "Eight"),
             Word("9️⃣", "Nine"),
-            Word("🔟", "Ten")
+            Word("🔟", "Ten"),
+            Word("1️⃣1️⃣", "Eleven"),
+            Word("1️⃣2️⃣", "Twelve"),
+            Word("1️⃣3️⃣", "Thirteen"),
+            Word("1️⃣4️⃣", "Fourteen"),
+            Word("1️⃣5️⃣", "Fifteen"),
+            Word("1️⃣6️⃣", "Sixteen"),
+            Word("1️⃣7️⃣", "Seventeen"),
+            Word("1️⃣8️⃣", "Eighteen"),
+            Word("1️⃣9️⃣", "Nineteen"),
+            Word("2️⃣0️⃣", "Twenty")
         )
     )
 
@@ -121,9 +154,9 @@ class MainActivity : Activity() {
             Word("🐻", "Bear"),
             Word("🦊", "Fox"),
             Word("🐸", "Frog"),
-            Word("🐵", "Chimpanzee"),
             Word("🐴", "Horse"),
-            Word("🐮", "Cow")
+            Word("🐮", "Cow"),
+            Word("🐧", "Penguin")
         )
     )
 
@@ -202,19 +235,15 @@ class MainActivity : Activity() {
         animals, fruits, vegetables, food, body
     )
 
-    private var selectedCategory: Category? = null
-    private var quizIndex = 0
-    private var quizScore = 0
-    private var quizQuestions: List<Word> = emptyList()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         tts = TextToSpeech(this) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 val result = tts?.setLanguage(Locale.US)
-                ttsReady = result != TextToSpeech.LANG_MISSING_DATA &&
-                        result != TextToSpeech.LANG_NOT_SUPPORTED
+                ttsReady =
+                    result != TextToSpeech.LANG_MISSING_DATA &&
+                    result != TextToSpeech.LANG_NOT_SUPPORTED
             }
         }
 
@@ -223,7 +252,12 @@ class MainActivity : Activity() {
 
     private fun speak(text: String) {
         if (ttsReady) {
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "english_word")
+            tts?.speak(
+                text,
+                TextToSpeech.QUEUE_FLUSH,
+                null,
+                "english_word"
+            )
         } else {
             Toast.makeText(
                 this,
@@ -237,7 +271,17 @@ class MainActivity : Activity() {
         return (value * resources.displayMetrics.density).toInt()
     }
 
-    private fun createPage(title: String, subtitle: String): LinearLayout {
+    private fun space(height: Int): View {
+        val view = View(this)
+        view.layoutParams = LinearLayout.LayoutParams(1, dp(height))
+        return view
+    }
+
+    private fun createPage(
+        title: String,
+        subtitle: String
+    ): LinearLayout {
+
         root = LinearLayout(this)
         root.orientation = LinearLayout.VERTICAL
         root.setBackgroundColor(pageColor)
@@ -247,12 +291,16 @@ class MainActivity : Activity() {
 
         val content = LinearLayout(this)
         content.orientation = LinearLayout.VERTICAL
-        content.setPadding(dp(18), dp(18), dp(18), dp(24))
+        content.setPadding(
+            dp(18), dp(18), dp(18), dp(25)
+        )
 
         val header = LinearLayout(this)
         header.orientation = LinearLayout.VERTICAL
         header.gravity = Gravity.CENTER
-        header.setPadding(dp(18), dp(24), dp(18), dp(24))
+        header.setPadding(
+            dp(18), dp(24), dp(18), dp(24)
+        )
         header.setBackgroundColor(blue)
 
         val heading = TextView(this)
@@ -273,22 +321,13 @@ class MainActivity : Activity() {
         header.addView(description)
 
         content.addView(header)
-        content.addView(space(12))
+        content.addView(space(15))
 
         scroll.addView(content)
         root.addView(scroll)
 
         setContentView(root)
         return content
-    }
-
-    private fun space(height: Int): View {
-        val view = View(this)
-        view.layoutParams = LinearLayout.LayoutParams(
-            1,
-            dp(height)
-        )
-        return view
     }
 
     private fun addText(
@@ -302,8 +341,11 @@ class MainActivity : Activity() {
         view.text = text
         view.textSize = size
         view.setTextColor(color)
-        view.gravity = Gravity.CENTER_VERTICAL
-        if (bold) view.typeface = Typeface.DEFAULT_BOLD
+        view.gravity = Gravity.CENTER
+
+        if (bold) {
+            view.typeface = Typeface.DEFAULT_BOLD
+        }
 
         view.setPadding(dp(4), dp(8), dp(4), dp(8))
         parent.addView(view)
@@ -317,7 +359,7 @@ class MainActivity : Activity() {
     ) {
         val button = Button(this)
         button.text = text
-        button.textSize = 15f
+        button.textSize = 16f
         button.isAllCaps = false
         button.setTextColor(Color.WHITE)
         button.setBackgroundColor(color)
@@ -325,57 +367,11 @@ class MainActivity : Activity() {
 
         val params = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
-            dp(54)
+            dp(55)
         )
+
         params.setMargins(0, dp(5), 0, dp(5))
         parent.addView(button, params)
-    }
-
-    private fun addWordCard(parent: LinearLayout, word: Word) {
-        val card = LinearLayout(this)
-        card.orientation = LinearLayout.HORIZONTAL
-        card.gravity = Gravity.CENTER_VERTICAL
-        card.setPadding(dp(14), dp(10), dp(14), dp(10))
-        card.setBackgroundColor(Color.WHITE)
-
-        val emoji = TextView(this)
-        emoji.text = word.emoji
-        emoji.textSize = 32f
-        emoji.gravity = Gravity.CENTER
-
-        card.addView(
-            emoji,
-            LinearLayout.LayoutParams(dp(65), dp(60))
-        )
-
-        val name = TextView(this)
-        name.text = word.english
-        name.textSize = 19f
-        name.typeface = Typeface.DEFAULT_BOLD
-        name.setTextColor(darkBlue)
-
-        card.addView(
-            name,
-            LinearLayout.LayoutParams(0, dp(60), 1f)
-        )
-
-        val sound = Button(this)
-        sound.text = "🔊"
-        sound.textSize = 18f
-        sound.isAllCaps = false
-        sound.setOnClickListener { speak(word.english) }
-
-        card.addView(
-            sound,
-            LinearLayout.LayoutParams(dp(65), dp(55))
-        )
-
-        val params = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        )
-        params.setMargins(0, dp(5), 0, dp(5))
-        parent.addView(card, params)
     }
 
     private fun showHome() {
@@ -384,7 +380,13 @@ class MainActivity : Activity() {
             "Learn English. Play. Have fun!"
         )
 
-        addText(page, "Choose Your Learning Group", 21f, darkBlue, true)
+        addText(
+            page,
+            "Choose Your Learning Group",
+            21f,
+            darkBlue,
+            true
+        )
 
         addButton(page, "🐣 Little Learners (Ages 4–6)", green) {
             showGroup("Little Learners", "Ages 4–6")
@@ -403,18 +405,16 @@ class MainActivity : Activity() {
         for (category in allCategories) {
             addButton(
                 page,
-                "${category.emoji}  ${category.title}",
-                blue
+                "${category.emoji}  ${category.title}"
             ) {
                 showLesson(category)
             }
         }
 
-        addText(page, "Your Learning Journey", 20f, darkBlue, true)
-
         val completed = prefs.getInt("completed_lessons", 0)
         val bestScore = prefs.getInt("quiz_score", 0)
 
+        addText(page, "Your Learning Journey", 20f, darkBlue, true)
         addText(page, "Completed lessons: $completed")
         addText(page, "Best quiz score: $bestScore")
 
@@ -435,7 +435,7 @@ class MainActivity : Activity() {
 
         addText(page, age, 19f, darkBlue, true)
 
-        val groupDescription = when (group) {
+        val description = when (group) {
             "Little Learners" ->
                 "Learn first words, letters, numbers and colors."
             "Junior Learners" ->
@@ -444,8 +444,7 @@ class MainActivity : Activity() {
                 "Improve vocabulary, reading and everyday communication."
         }
 
-        addText(page, groupDescription, 16f)
-
+        addText(page, description, 16f)
         addText(page, "Choose a lesson", 21f, darkBlue, true)
 
         val categories = when (group) {
@@ -458,7 +457,7 @@ class MainActivity : Activity() {
         }
 
         for (category in categories) {
-            addButton(page, "${category.emoji}  ${category.title}") {
+            addButton(page, "${category.emoji} ${category.title}") {
                 showLesson(category)
             }
         }
@@ -472,49 +471,175 @@ class MainActivity : Activity() {
         }
     }
 
+    // One learning item per screen
+
     private fun showLesson(category: Category) {
-        selectedCategory = category
+        currentCategory = category
+        currentWordIndex = 0
+        showWordPage()
+    }
+
+    private fun showWordPage() {
+        val category = currentCategory ?: return
+        val word = category.words[currentWordIndex]
+        val total = category.words.size
+        val number = currentWordIndex + 1
 
         val page = createPage(
             "${category.emoji} ${category.title}",
-            "Look, listen and repeat!"
+            "Learn one word at a time!"
         )
 
-        addText(page, "Listen to each word and say it aloud.", 16f)
+        addText(
+            page,
+            "Word $number of $total",
+            18f,
+            darkBlue,
+            true
+        )
 
-        for (word in category.words) {
-            addWordCard(page, word)
+        addText(
+            page,
+            "⭐  ${number * 100 / total}% completed",
+            15f,
+            green,
+            true
+        )
+
+        // Large illustration area
+
+        val pictureCard = LinearLayout(this)
+        pictureCard.orientation = LinearLayout.VERTICAL
+        pictureCard.gravity = Gravity.CENTER
+        pictureCard.setPadding(
+            dp(12), dp(18), dp(12), dp(18)
+        )
+        pictureCard.setBackgroundColor(Color.WHITE)
+
+        val picture = TextView(this)
+        picture.text = word.emoji
+        picture.textSize = 100f
+        picture.gravity = Gravity.CENTER
+
+        pictureCard.addView(
+            picture,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(210)
+            )
+        )
+
+        val wordName = TextView(this)
+        wordName.text = word.english
+        wordName.textSize = 29f
+        wordName.setTextColor(darkBlue)
+        wordName.typeface = Typeface.DEFAULT_BOLD
+        wordName.gravity = Gravity.CENTER
+        wordName.setPadding(0, dp(12), 0, dp(12))
+
+        pictureCard.addView(wordName)
+
+        page.addView(
+            pictureCard,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
+
+        addText(
+            page,
+            "Listen and repeat!",
+            20f,
+            darkBlue,
+            true
+        )
+
+        addButton(page, "🔊 Listen to the Word", blue) {
+            speak(word.english)
         }
 
-        addButton(page, "🔊 Listen to All Words", green) {
-            speak(category.words.joinToString(", ") { it.english })
+        addButton(page, "🎤 Listen Again", purple) {
+            speak(word.english)
         }
 
-        addButton(page, "🎮 Practice This Topic", orange) {
+        page.addView(space(12))
+
+        // Navigation
+
+        if (currentWordIndex > 0) {
+            addButton(page, "⬅ Previous", blue) {
+                currentWordIndex--
+                showWordPage()
+            }
+        }
+
+        if (currentWordIndex < total - 1) {
+            addButton(page, "Next ➜", green) {
+                currentWordIndex++
+                showWordPage()
+            }
+        } else {
+            addButton(page, "🏆 Finish Lesson", green) {
+                val count = prefs.getInt("completed_lessons", 0) + 1
+                prefs.edit()
+                    .putInt("completed_lessons", count)
+                    .apply()
+
+                Toast.makeText(
+                    this,
+                    "Amazing! Lesson completed!",
+                    Toast.LENGTH_LONG
+                ).show()
+
+                showLessonComplete()
+            }
+        }
+
+        addButton(page, "🎮 Practice Quiz", orange) {
             startQuiz(category)
         }
 
-        addButton(page, "✓ Complete Lesson", purple) {
-            val count = prefs.getInt("completed_lessons", 0) + 1
-            prefs.edit().putInt("completed_lessons", count).apply()
-            Toast.makeText(
-                this,
-                "Lesson completed!",
-                Toast.LENGTH_SHORT
-            ).show()
+        addButton(page, "⬅ Back to Home", darkBlue) {
             showHome()
         }
+    }
 
-        addButton(page, "⬅ Home", darkBlue) {
+    private fun showLessonComplete() {
+        val page = createPage(
+            "🏆 Amazing Work!",
+            "You completed this lesson!"
+        )
+
+        addText(page, "⭐ ⭐ ⭐", 45f)
+        addText(
+            page,
+            "Great job! Keep learning!",
+            22f,
+            darkBlue,
+            true
+        )
+
+        addButton(page, "🎮 Take a Quiz", green) {
+            startQuiz(currentCategory)
+        }
+
+        addButton(page, "🔄 Learn Again", orange) {
+            currentCategory?.let { showLesson(it) }
+        }
+
+        addButton(page, "🏠 Home", blue) {
             showHome()
         }
     }
 
     private fun startQuiz(category: Category? = null) {
         val source = category ?: allCategories.random()
+
         quizQuestions = source.words.shuffled().take(5)
         quizIndex = 0
         quizScore = 0
+
         showQuizQuestion()
     }
 
@@ -525,21 +650,29 @@ class MainActivity : Activity() {
         }
 
         val correctWord = quizQuestions[quizIndex]
+
         val page = createPage(
             "🎮 Word Challenge",
             "Question ${quizIndex + 1} of ${quizQuestions.size}"
         )
 
-        addText(page, "Which word matches this picture?", 20f, darkBlue, true)
+        addText(
+            page,
+            "Which word matches this picture?",
+            20f,
+            darkBlue,
+            true
+        )
 
-        addText(page, correctWord.emoji, 65f, darkBlue, true)
+        addText(page, correctWord.emoji, 85f, darkBlue, true)
 
-        val options = (listOf(correctWord) +
-                allCategories.flatMap { it.words }
-                    .filter { it.english != correctWord.english }
-                    .shuffled()
-                    .take(3)
-                ).shuffled()
+        val options = (
+            listOf(correctWord) +
+            allCategories.flatMap { it.words }
+                .filter { it.english != correctWord.english }
+                .shuffled()
+                .take(3)
+        ).shuffled()
 
         for (option in options) {
             addButton(page, option.english, blue) {
@@ -587,20 +720,26 @@ class MainActivity : Activity() {
         )
 
         val best = prefs.getInt("quiz_score", 0)
+
         if (quizScore > best) {
-            prefs.edit().putInt("quiz_score", quizScore).apply()
+            prefs.edit()
+                .putInt("quiz_score", quizScore)
+                .apply()
         }
 
         val message = when {
-            quizScore == quizQuestions.size -> "Perfect score! Amazing!"
-            quizScore >= 3 -> "Well done! Keep learning!"
-            else -> "Good try! Practice makes progress!"
+            quizScore == quizQuestions.size ->
+                "Perfect score! Amazing!"
+            quizScore >= 3 ->
+                "Well done! Keep learning!"
+            else ->
+                "Good try! Practice makes progress!"
         }
 
         addText(page, message, 19f, darkBlue, true)
 
         addButton(page, "🔄 Try Again", green) {
-            startQuiz(selectedCategory)
+            startQuiz(currentCategory)
         }
 
         addButton(page, "🏠 Home", blue) {
@@ -617,11 +756,24 @@ class MainActivity : Activity() {
         val completed = prefs.getInt("completed_lessons", 0)
         val bestScore = prefs.getInt("quiz_score", 0)
 
-        addText(page, "⭐ Learning Statistics", 22f, darkBlue, true)
+        addText(
+            page,
+            "⭐ Learning Statistics",
+            22f,
+            darkBlue,
+            true
+        )
+
         addText(page, "Completed lessons: $completed", 19f)
         addText(page, "Best quiz score: $bestScore / 5", 19f)
 
-        addText(page, "Keep practicing every day!", 18f, green, true)
+        addText(
+            page,
+            "Keep practicing every day!",
+            18f,
+            green,
+            true
+        )
 
         addButton(page, "🎮 Play a Quiz", orange) {
             startQuiz()
