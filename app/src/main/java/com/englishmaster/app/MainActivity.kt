@@ -271,8 +271,8 @@ class MainActivity : Activity() {
 
         header.background = roundedBackground(
             intArrayOf(
-                Color.rgb(180, 105, 35),
-                Color.rgb(120, 65, 25)
+                Color.rgb(55, 190, 65),
+                Color.rgb(15, 125, 45)
             ),
             23,
             Color.rgb(255, 205, 100),
@@ -293,16 +293,16 @@ class MainActivity : Activity() {
         brandColumn.setPadding(dp(5), 0, dp(5), 0)
 
         val brand = TextView(this)
-        brand.text = "EnglishMaster"
-        brand.textSize = 23f
+        brand.text = "Fruits Adventure"
+        brand.textSize = 21f
         brand.setTextColor(Color.WHITE)
         brand.typeface = Typeface.DEFAULT_BOLD
         brand.gravity = Gravity.CENTER
         brand.setShadowLayer(3f, 2f, 3f, Color.BLACK)
 
         val kids = TextView(this)
-        kids.text = "K I D S"
-        kids.textSize = 20f
+        kids.text = "ENGLISHMASTER KIDS"
+        kids.textSize = 13f
         kids.setTextColor(Color.YELLOW)
         kids.typeface = Typeface.DEFAULT_BOLD
         kids.gravity = Gravity.CENTER
@@ -532,7 +532,7 @@ class MainActivity : Activity() {
     private fun showHome() {
         val page = createPage(
             "Home",
-            "Learn English. Play. Have fun!"
+            "Fruits Adventure • Learn and Play!"
         )
 
         addText(
@@ -593,11 +593,11 @@ class MainActivity : Activity() {
 
         panel.background = roundedBackground(
             intArrayOf(
-                Color.rgb(255, 250, 225),
-                Color.rgb(255, 230, 180)
+                Color.rgb(235, 255, 220),
+                Color.rgb(205, 245, 185)
             ),
             24,
-            Color.rgb(255, 180, 70),
+            Color.rgb(65, 185, 55),
             2
         )
 
@@ -606,7 +606,7 @@ class MainActivity : Activity() {
         row.gravity = Gravity.CENTER_VERTICAL
 
         val label = TextView(this)
-        label.text = "Word $number of $total"
+        label.text = "FRUIT $number / $total"
         label.textSize = 20f
         label.setTextColor(darkBlue)
         label.typeface = Typeface.DEFAULT_BOLD
@@ -672,7 +672,7 @@ class MainActivity : Activity() {
 
         val page = createPage(
             "Fruits",
-            "Let's discover a delicious fruit!"
+            "Explore, learn and say each fruit!"
         )
 
         addFruitProgress(page, number, total)
@@ -692,7 +692,7 @@ class MainActivity : Activity() {
                 Color.rgb(250, 253, 255)
             ),
             32,
-            Color.rgb(20, 130, 255),
+            Color.rgb(255, 155, 15),
             4
         )
 
