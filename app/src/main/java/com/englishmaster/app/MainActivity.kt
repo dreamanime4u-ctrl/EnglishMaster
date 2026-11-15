@@ -1,17 +1,11 @@
-
 package com.englishmaster.app
 
 import android.app.Activity
-import android.content.Context
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
-import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Path
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
-import android.content.res.ColorStateList
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
@@ -25,7 +19,6 @@ import java.util.Locale
 
 class MainActivity : Activity() {
 
-    private lateinit var root: LinearLayout
     private var tts: TextToSpeech? = null
     private var ttsReady = false
 
@@ -33,12 +26,13 @@ class MainActivity : Activity() {
         getSharedPreferences("english_master_data", MODE_PRIVATE)
     }
 
-    private val blue = Color.rgb(20, 115, 245)
-    private val darkBlue = Color.rgb(20, 48, 125)
-    private val green = Color.rgb(35, 190, 35)
-    private val orange = Color.rgb(255, 155, 15)
-    private val purple = Color.rgb(155, 40, 230)
-    private val textColor = Color.rgb(45, 55, 75)
+    private val blue = Color.rgb(45, 115, 245)
+    private val navy = Color.rgb(35, 55, 115)
+    private val green = Color.rgb(40, 190, 105)
+    private val orange = Color.rgb(255, 155, 45)
+    private val purple = Color.rgb(155, 90, 230)
+    private val pink = Color.rgb(245, 105, 155)
+    private val ink = Color.rgb(45, 55, 85)
 
     private data class Word(
         val english: String,
@@ -72,6 +66,10 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        window.statusBarColor = Color.rgb(39, 75, 160)
+        window.navigationBarColor = Color.rgb(35, 55, 115)
+        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+
         tts = TextToSpeech(this) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 val result = tts?.setLanguage(Locale.US)
@@ -84,13 +82,17 @@ class MainActivity : Activity() {
         showHome()
     }
 
+    private fun dp(value: Int): Int {
+        return (value * resources.displayMetrics.density).toInt()
+    }
+
     private fun speak(word: String) {
         if (ttsReady) {
             tts?.speak(
                 word,
                 TextToSpeech.QUEUE_FLUSH,
                 null,
-                "fruit_word"
+                "english_word"
             )
         } else {
             Toast.makeText(
@@ -101,8 +103,21 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun dp(value: Int): Int {
-        return (value * resources.displayMetrics.density).toInt()
+    private fun gradient(
+        colors: IntArray,
+        radius: Int,
+        strokeColor: Int = Color.TRANSPARENT,
+        strokeWidth: Int = 0
+    ): GradientDrawable {
+        return GradientDrawable(
+            GradientDrawable.Orientation.TOP_BOTTOM,
+            colors
+        ).apply {
+            cornerRadius = dp(radius).toFloat()
+            if (strokeWidth > 0) {
+                setStroke(dp(strokeWidth), strokeColor)
+            }
+        }
     }
 
     private fun space(height: Int): View {
@@ -114,122 +129,184 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun roundedBackground(
-        colors: IntArray,
-        radius: Int,
-        strokeColor: Int = Color.TRANSPARENT,
-        strokeWidth: Int = 0
-    ): GradientDrawable {
-
-        return GradientDrawable(
-            GradientDrawable.Orientation.TOP_BOTTOM,
-            colors
-        ).apply {
-            cornerRadius = dp(radius).toFloat()
-
-            if (strokeWidth > 0) {
-                setStroke(dp(strokeWidth), strokeColor)
+    private fun makeText(
+        value: String,
+        size: Float = 18f,
+        color: Int = ink,
+        bold: Boolean = false
+    ): TextView {
+        return TextView(this).apply {
+            text = value
+            textSize = size
+            setTextColor(color)
+            gravity = Gravity.CENTER
+            includeFontPadding = true
+            if (bold) {
+                typeface = Typeface.create(
+                    "sans-serif-rounded",
+                    Typeface.BOLD
+                )
             }
+            setPadding(dp(5), dp(7), dp(5), dp(7))
         }
     }
 
-    // A simple smiling yellow star mascot drawn directly in Android.
-    private class StarMascotView(context: Context) : View(context) {
+    private fun addText(
+        parent: LinearLayout,
+        value: String,
+        size: Float = 18f,
+        color: Int = ink,
+        bold: Boolean = false
+    ) {
+        parent.addView(makeText(value, size, color, bold))
+    }
 
-        private val starPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(255, 205, 20)
-            style = Paint.Style.FILL
-            setShadowLayer(7f, 0f, 4f, 0x66000000)
+    private fun makeCard(
+        radius: Int = 28,
+        background: Int = Color.WHITE
+    ): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(dp(14), dp(14), dp(14), dp(14))
+            this.background = gradient(
+                intArrayOf(background, Color.rgb(250, 252, 255)),
+                radius,
+                Color.WHITE,
+                2
+            )
+            elevation = dp(8).toFloat()
         }
+    }
 
-        private val edgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(235, 145, 0)
-            style = Paint.Style.STROKE
-            strokeWidth = 3f
-        }
+    private fun addCard(
+        parent: LinearLayout,
+        card: View,
+        top: Int = 8,
+        bottom: Int = 8
+    ) {
+        val params = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        params.setMargins(0, dp(top), 0, dp(bottom))
+        parent.addView(card, params)
+    }
 
-        private val facePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(35, 40, 65)
-            style = Paint.Style.FILL
-        }
-
-        private val whitePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
-            style = Paint.Style.FILL
-        }
-
-        override fun onDraw(canvas: Canvas) {
-            super.onDraw(canvas)
-
-            val cx = width / 2f
-            val cy = height / 2f
-            val outer = minOf(width, height) * 0.46f
-            val inner = outer * 0.48f
-
-            val path = Path()
-
-            for (i in 0 until 10) {
-                val angle = Math.PI * i / 5.0 - Math.PI / 2.0
-                val radius = if (i % 2 == 0) outer else inner
-
-                val x = cx + (radius * Math.cos(angle)).toFloat()
-                val y = cy + (radius * Math.sin(angle)).toFloat()
-
-                if (i == 0) path.moveTo(x, y)
-                else path.lineTo(x, y)
-            }
-
-            path.close()
-
-            canvas.drawPath(path, starPaint)
-            canvas.drawPath(path, edgePaint)
-
-            canvas.drawCircle(
-                cx - outer * 0.25f,
-                cy - outer * 0.05f,
-                outer * 0.09f,
-                whitePaint
+    private fun makeButton(
+        label: String,
+        color: Int,
+        action: () -> Unit
+    ): Button {
+        val shades = when (color) {
+            green -> intArrayOf(
+                Color.rgb(115, 240, 155),
+                Color.rgb(35, 185, 105),
+                Color.rgb(20, 135, 80)
             )
 
-            canvas.drawCircle(
-                cx + outer * 0.25f,
-                cy - outer * 0.05f,
-                outer * 0.09f,
-                whitePaint
+            orange -> intArrayOf(
+                Color.rgb(255, 215, 105),
+                Color.rgb(255, 150, 45),
+                Color.rgb(225, 100, 20)
             )
 
-            canvas.drawCircle(
-                cx - outer * 0.25f,
-                cy - outer * 0.04f,
-                outer * 0.045f,
-                facePaint
+            purple -> intArrayOf(
+                Color.rgb(205, 155, 255),
+                Color.rgb(145, 85, 225),
+                Color.rgb(100, 50, 180)
             )
 
-            canvas.drawCircle(
-                cx + outer * 0.25f,
-                cy - outer * 0.04f,
-                outer * 0.045f,
-                facePaint
+            pink -> intArrayOf(
+                Color.rgb(255, 165, 195),
+                Color.rgb(240, 100, 155),
+                Color.rgb(205, 65, 125)
             )
 
-            val smile = Path()
-            smile.moveTo(cx - outer * 0.23f, cy + outer * 0.20f)
-            smile.quadTo(
-                cx,
-                cy + outer * 0.48f,
-                cx + outer * 0.23f,
-                cy + outer * 0.20f
+            else -> intArrayOf(
+                Color.rgb(120, 195, 255),
+                Color.rgb(55, 125, 245),
+                Color.rgb(35, 75, 190)
             )
-
-            val smilePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.rgb(145, 35, 20)
-                style = Paint.Style.STROKE
-                strokeWidth = outer * 0.075f
-                strokeCap = Paint.Cap.ROUND
-            }
-
-            canvas.drawPath(smile, smilePaint)
         }
+
+        return Button(this).apply {
+            text = label
+            textSize = 16f
+            isAllCaps = false
+            minHeight = 0
+            minWidth = 0
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            setPadding(dp(8), dp(5), dp(8), dp(5))
+            background = gradient(
+                shades,
+                22,
+                Color.WHITE,
+                2
+            )
+            elevation = dp(5).toFloat()
+            setOnClickListener { action() }
+        }
+    }
+
+    private fun addButton(
+        parent: LinearLayout,
+        label: String,
+        color: Int = blue,
+        action: () -> Unit
+    ) {
+        val button = makeButton(label, color, action)
+        val params = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            dp(57)
+        )
+        params.setMargins(0, dp(6), 0, dp(6))
+        parent.addView(button, params)
+    }
+
+    private fun addButtonRow(
+        parent: LinearLayout,
+        firstLabel: String,
+        firstColor: Int,
+        firstAction: () -> Unit,
+        secondLabel: String,
+        secondColor: Int,
+        secondAction: () -> Unit
+    ) {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+
+        val first = makeButton(firstLabel, firstColor, firstAction)
+        val second = makeButton(secondLabel, secondColor, secondAction)
+
+        val firstParams = LinearLayout.LayoutParams(
+            0,
+            dp(57),
+            1f
+        )
+        firstParams.setMargins(0, dp(5), dp(5), dp(5))
+
+        val secondParams = LinearLayout.LayoutParams(
+            0,
+            dp(57),
+            1f
+        )
+        secondParams.setMargins(dp(5), dp(5), 0, dp(5))
+
+        row.addView(first, firstParams)
+        row.addView(second, secondParams)
+
+        parent.addView(
+            row,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
     }
 
     private fun createPage(
@@ -237,79 +314,82 @@ class MainActivity : Activity() {
         subtitle: String
     ): LinearLayout {
 
-        root = LinearLayout(this)
-        root.orientation = LinearLayout.VERTICAL
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            fitsSystemWindows = true
+            background = gradient(
+                intArrayOf(
+                    Color.rgb(120, 205, 255),
+                    Color.rgb(205, 235, 255),
+                    Color.rgb(235, 250, 225)
+                ),
+                0
+            )
+        }
 
-        // Programmatic sky-to-garden background.
-        root.background = roundedBackground(
-            intArrayOf(
-                Color.rgb(35, 160, 255),
-                Color.rgb(145, 220, 255),
-                Color.rgb(205, 245, 180)
-            ),
-            0
-        )
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            clipToPadding = false
+            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
+        }
 
-        val scroll = ScrollView(this)
-        scroll.isFillViewport = true
-        scroll.overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(dp(17), dp(14), dp(17), dp(28))
+        }
 
-        val content = LinearLayout(this)
-        content.orientation = LinearLayout.VERTICAL
-        content.gravity = Gravity.CENTER_HORIZONTAL
-        content.setPadding(
-            dp(14), dp(12), dp(14), dp(24)
-        )
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(13), dp(12), dp(13), dp(12))
+            background = gradient(
+                intArrayOf(
+                    Color.rgb(95, 145, 255),
+                    Color.rgb(75, 75, 205),
+                    Color.rgb(65, 55, 160)
+                ),
+                27,
+                Color.WHITE,
+                2
+            )
+            elevation = dp(9).toFloat()
+        }
 
-        // Brand header.
-        val header = LinearLayout(this)
-        header.orientation = LinearLayout.HORIZONTAL
-        header.gravity = Gravity.CENTER_VERTICAL
-        header.setPadding(
-            dp(10), dp(8), dp(10), dp(8)
-        )
+        val mascot = TextView(this).apply {
+            text = "⭐"
+            textSize = 42f
+            gravity = Gravity.CENTER
+            setShadowLayer(5f, 2f, 4f, Color.rgb(30, 35, 90))
+        }
 
-        header.background = roundedBackground(
-            intArrayOf(
-                Color.rgb(55, 190, 65),
-                Color.rgb(15, 125, 45)
-            ),
-            23,
-            Color.rgb(255, 205, 100),
-            3
-        )
-
-        header.elevation = dp(7).toFloat()
-
-        val mascot = StarMascotView(this)
         header.addView(
             mascot,
-            LinearLayout.LayoutParams(dp(67), dp(67))
+            LinearLayout.LayoutParams(dp(65), dp(65))
         )
 
-        val brandColumn = LinearLayout(this)
-        brandColumn.orientation = LinearLayout.VERTICAL
-        brandColumn.gravity = Gravity.CENTER
-        brandColumn.setPadding(dp(5), 0, dp(5), 0)
+        val brandColumn = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+        }
 
-        val brand = TextView(this)
-        brand.text = "Fruits Adventure"
-        brand.textSize = 21f
-        brand.setTextColor(Color.WHITE)
-        brand.typeface = Typeface.DEFAULT_BOLD
-        brand.gravity = Gravity.CENTER
-        brand.setShadowLayer(3f, 2f, 3f, Color.BLACK)
+        brandColumn.addView(
+            makeText(
+                "EnglishMaster",
+                22f,
+                Color.WHITE,
+                true
+            )
+        )
 
-        val kids = TextView(this)
-        kids.text = "ENGLISHMASTER KIDS"
-        kids.textSize = 13f
-        kids.setTextColor(Color.YELLOW)
-        kids.typeface = Typeface.DEFAULT_BOLD
-        kids.gravity = Gravity.CENTER
-        kids.setShadowLayer(3f, 2f, 3f, Color.BLACK)
-
-        brandColumn.addView(brand)
-        brandColumn.addView(kids)
+        brandColumn.addView(
+            makeText(
+                "LEARN • PLAY • GROW",
+                11f,
+                Color.rgb(255, 230, 130),
+                true
+            )
+        )
 
         header.addView(
             brandColumn,
@@ -321,26 +401,12 @@ class MainActivity : Activity() {
         )
 
         if (title != "Home") {
-            val home = Button(this)
-            home.text = "⌂"
-            home.textSize = 27f
-            home.setTextColor(Color.WHITE)
-            home.background = roundedBackground(
-                intArrayOf(
-                    Color.rgb(65, 180, 255),
-                    Color.rgb(0, 85, 220)
-                ),
-                35,
-                Color.WHITE,
-                2
-            )
-            home.setOnClickListener {
+            val home = makeButton("⌂", blue) {
                 showHome()
             }
-
             header.addView(
                 home,
-                LinearLayout.LayoutParams(dp(52), dp(52))
+                LinearLayout.LayoutParams(dp(52), dp(50))
             )
         }
 
@@ -352,18 +418,18 @@ class MainActivity : Activity() {
             )
         )
 
-        content.addView(space(12))
+        content.addView(space(13))
 
-        val subtitleView = TextView(this)
-        subtitleView.text = subtitle
-        subtitleView.textSize = 18f
-        subtitleView.setTextColor(darkBlue)
-        subtitleView.typeface = Typeface.DEFAULT_BOLD
-        subtitleView.gravity = Gravity.CENTER
-        subtitleView.setShadowLayer(1f, 1f, 1f, Color.WHITE)
-
-        content.addView(subtitleView)
-        content.addView(space(10))
+        val subtitleCard = makeCard(22)
+        subtitleCard.addView(
+            makeText(
+                subtitle,
+                17f,
+                navy,
+                true
+            )
+        )
+        addCard(content, subtitleCard, 2, 10)
 
         scroll.addView(content)
         root.addView(
@@ -378,203 +444,141 @@ class MainActivity : Activity() {
         return content
     }
 
-    private fun addText(
-        parent: LinearLayout,
-        text: String,
-        size: Float = 18f,
-        color: Int = textColor,
-        bold: Boolean = false
-    ) {
-        val view = TextView(this)
-        view.text = text
-        view.textSize = size
-        view.setTextColor(color)
-        view.gravity = Gravity.CENTER
-
-        if (bold) {
-            view.typeface = Typeface.DEFAULT_BOLD
-        }
-
-        view.setPadding(dp(4), dp(7), dp(4), dp(7))
-        parent.addView(view)
-    }
-
-    private fun makeButton(
-        text: String,
-        color: Int,
-        action: () -> Unit
-    ): Button {
-
-        val button = Button(this)
-        button.text = text
-        button.textSize = 17f
-        button.isAllCaps = false
-        button.minHeight = 0
-        button.minWidth = 0
-        button.setTextColor(Color.WHITE)
-        button.typeface = Typeface.DEFAULT_BOLD
-        button.gravity = Gravity.CENTER
-        button.setPadding(
-            dp(5), dp(5), dp(5), dp(5)
+    private fun showHome() {
+        val page = createPage(
+            "Home",
+            "Welcome to your learning adventure!"
         )
 
-        val colors = when (color) {
-            green -> intArrayOf(
-                Color.rgb(145, 255, 55),
-                Color.rgb(35, 195, 25),
-                Color.rgb(0, 125, 15)
-            )
-
-            orange -> intArrayOf(
-                Color.rgb(255, 220, 65),
-                Color.rgb(255, 150, 10),
-                Color.rgb(220, 75, 0)
-            )
-
-            purple -> intArrayOf(
-                Color.rgb(225, 130, 255),
-                Color.rgb(160, 45, 235),
-                Color.rgb(100, 15, 165)
-            )
-
-            else -> intArrayOf(
-                Color.rgb(100, 215, 255),
-                Color.rgb(20, 120, 250),
-                Color.rgb(0, 55, 180)
-            )
-        }
-
-        button.background = roundedBackground(
-            colors,
+        val hero = makeCard(30)
+        hero.background = gradient(
+            intArrayOf(
+                Color.rgb(255, 255, 255),
+                Color.rgb(225, 245, 255)
+            ),
             30,
             Color.WHITE,
             2
         )
 
-        button.elevation = dp(6).toFloat()
-
-        button.setOnClickListener {
-            action()
-        }
-
-        return button
-    }
-
-    private fun addButton(
-        parent: LinearLayout,
-        text: String,
-        color: Int = blue,
-        action: () -> Unit
-    ) {
-        val button = makeButton(text, color, action)
-
-        val params = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            dp(58)
+        hero.addView(
+            makeText("🌈", 48f)
         )
-
-        params.setMargins(0, dp(5), 0, dp(5))
-        parent.addView(button, params)
-    }
-
-    private fun addButtonRow(
-        parent: LinearLayout,
-        firstText: String,
-        firstColor: Int,
-        firstAction: () -> Unit,
-        secondText: String,
-        secondColor: Int,
-        secondAction: () -> Unit
-    ) {
-        val row = LinearLayout(this)
-        row.orientation = LinearLayout.HORIZONTAL
-        row.gravity = Gravity.CENTER
-        row.weightSum = 2f
-
-        val first = makeButton(
-            firstText,
-            firstColor,
-            firstAction
-        )
-
-        val second = makeButton(
-            secondText,
-            secondColor,
-            secondAction
-        )
-
-        val firstParams = LinearLayout.LayoutParams(
-            0,
-            dp(60),
-            1f
-        )
-        firstParams.setMargins(dp(3), dp(5), dp(5), dp(5))
-
-        val secondParams = LinearLayout.LayoutParams(
-            0,
-            dp(60),
-            1f
-        )
-        secondParams.setMargins(dp(5), dp(5), dp(3), dp(5))
-
-        row.addView(first, firstParams)
-        row.addView(second, secondParams)
-
-        parent.addView(
-            row,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+        hero.addView(
+            makeText(
+                "Hello, Little Learner!",
+                24f,
+                navy,
+                true
             )
         )
-    }
-
-    private fun showHome() {
-        val page = createPage(
-            "Home",
-            "Fruits Adventure • Learn and Play!"
+        hero.addView(
+            makeText(
+                "Let's learn English in a fun way!",
+                15f,
+                ink
+            )
         )
+        addCard(page, hero, 8, 12)
 
         addText(
             page,
-            "Welcome, Little Learner!",
-            24f,
-            darkBlue,
+            "CHOOSE YOUR ADVENTURE",
+            17f,
+            navy,
             true
         )
 
-        addText(
-            page,
-            "Choose your adventure",
-            20f,
-            darkBlue,
-            true
+        val fruitCard = makeCard(25)
+        fruitCard.background = gradient(
+            intArrayOf(
+                Color.rgb(150, 245, 175),
+                Color.rgb(60, 200, 130)
+            ),
+            25
         )
-
-        addButton(page, "🍎  Fruits", green) {
+        fruitCard.addView(makeText("🍎 🍌 🍇", 35f))
+        fruitCard.addView(
+            makeText(
+                "Fruits Adventure",
+                21f,
+                Color.WHITE,
+                true
+            )
+        )
+        fruitCard.addView(
+            makeText(
+                "Discover 16 delicious fruits",
+                14f,
+                Color.WHITE
+            )
+        )
+        fruitCard.setOnClickListener {
             currentIndex = 0
             showFruitPage()
         }
+        addCard(page, fruitCard, 8, 8)
 
-        addButton(page, "⭐  Practice Fruit Quiz", orange) {
+        val quizCard = makeCard(25)
+        quizCard.background = gradient(
+            intArrayOf(
+                Color.rgb(255, 205, 115),
+                Color.rgb(255, 145, 65)
+            ),
+            25
+        )
+        quizCard.addView(makeText("🏆 ⭐ 🎯", 35f))
+        quizCard.addView(
+            makeText(
+                "Fruit Challenge",
+                21f,
+                Color.WHITE,
+                true
+            )
+        )
+        quizCard.addView(
+            makeText(
+                "Test what you have learned",
+                14f,
+                Color.WHITE
+            )
+        )
+        quizCard.setOnClickListener {
             startFruitQuiz()
         }
+        addCard(page, quizCard, 8, 8)
 
         val completed = prefs.getInt("fruit_completed", 0)
         val best = prefs.getInt("fruit_best_score", 0)
 
-        addText(
-            page,
-            "Your Learning Journey",
-            22f,
-            darkBlue,
-            true
+        val stats = makeCard(25)
+        stats.addView(
+            makeText(
+                "🏅 YOUR LEARNING JOURNEY",
+                18f,
+                navy,
+                true
+            )
         )
+        stats.addView(
+            makeText(
+                "Completed lessons: $completed",
+                17f,
+                ink,
+                true
+            )
+        )
+        stats.addView(
+            makeText(
+                "Best quiz score: $best / 5",
+                17f,
+                ink,
+                true
+            )
+        )
+        addCard(page, stats, 12, 8)
 
-        addText(page, "Completed fruit lessons: $completed")
-        addText(page, "Best fruit quiz score: $best / 5")
-
-        addButton(page, "My Progress", purple) {
+        addButton(page, "📊  My Progress", purple) {
             showProgress()
         }
     }
@@ -584,83 +588,49 @@ class MainActivity : Activity() {
         number: Int,
         total: Int
     ) {
-        val panel = LinearLayout(this)
-        panel.orientation = LinearLayout.VERTICAL
-        panel.gravity = Gravity.CENTER
-        panel.setPadding(
-            dp(12), dp(7), dp(12), dp(7)
-        )
-
-        panel.background = roundedBackground(
+        val panel = makeCard(22)
+        panel.background = gradient(
             intArrayOf(
-                Color.rgb(235, 255, 220),
-                Color.rgb(205, 245, 185)
+                Color.rgb(255, 255, 255),
+                Color.rgb(225, 255, 230)
             ),
-            24,
-            Color.rgb(65, 185, 55),
+            22,
+            Color.rgb(100, 215, 140),
             2
         )
 
-        val row = LinearLayout(this)
-        row.orientation = LinearLayout.HORIZONTAL
-        row.gravity = Gravity.CENTER_VERTICAL
-
-        val label = TextView(this)
-        label.text = "FRUIT $number / $total"
-        label.textSize = 20f
-        label.setTextColor(darkBlue)
-        label.typeface = Typeface.DEFAULT_BOLD
-        label.gravity = Gravity.CENTER
-
-        row.addView(
-            label,
-            LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
+        panel.addView(
+            makeText(
+                "FRUIT $number / $total     ⭐ ⭐ ⭐",
+                18f,
+                navy,
+                true
             )
         )
-
-        val stars = TextView(this)
-        stars.text = "★ ★ ★"
-        stars.textSize = 20f
-        stars.setTextColor(Color.rgb(255, 165, 0))
-        stars.typeface = Typeface.DEFAULT_BOLD
-        row.addView(stars)
-
-        panel.addView(row)
 
         val progress = ProgressBar(
             this,
             null,
             android.R.attr.progressBarStyleHorizontal
-        )
+        ).apply {
+            max = total
+            this.progress = number
+            progressTintList =
+                android.content.res.ColorStateList.valueOf(green)
+            progressBackgroundTintList =
+                android.content.res.ColorStateList.valueOf(
+                    Color.rgb(210, 225, 225)
+                )
+        }
 
-        progress.max = total
-        progress.progress = number
-        progress.progressTintList = ColorStateList.valueOf(
-            Color.rgb(45, 205, 35)
-        )
-        progress.progressBackgroundTintList =
-            ColorStateList.valueOf(
-                Color.rgb(185, 200, 230)
-            )
-
-        val progressParams = LinearLayout.LayoutParams(
+        val params = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
-            dp(17)
+            dp(15)
         )
-        progressParams.setMargins(0, dp(7), 0, dp(5))
+        params.setMargins(dp(5), dp(8), dp(5), dp(5))
+        panel.addView(progress, params)
 
-        panel.addView(progress, progressParams)
-
-        page.addView(
-            panel,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        )
+        addCard(page, panel, 4, 8)
     }
 
     private fun showFruitPage() {
@@ -676,79 +646,56 @@ class MainActivity : Activity() {
         )
 
         addFruitProgress(page, number, total)
-        page.addView(space(12))
 
-        // Main fruit card.
-        val card = LinearLayout(this)
-        card.orientation = LinearLayout.VERTICAL
-        card.gravity = Gravity.CENTER
-        card.setPadding(
-            dp(10), dp(12), dp(10), dp(12)
-        )
-
-        card.background = roundedBackground(
+        val card = makeCard(32)
+        card.background = gradient(
             intArrayOf(
                 Color.WHITE,
-                Color.rgb(250, 253, 255)
+                Color.rgb(245, 250, 255)
             ),
             32,
-            Color.rgb(255, 155, 15),
-            4
+            Color.rgb(255, 190, 80),
+            3
         )
 
-        card.elevation = dp(9).toFloat()
-
-        val picture = ImageView(this)
-        picture.setImageResource(word.imageRes)
-
-        // Preserve the complete image without stretching or cropping.
-        picture.scaleType = ImageView.ScaleType.FIT_CENTER
-        picture.adjustViewBounds = true
-        picture.contentDescription = word.english
-        picture.setPadding(
-            dp(5), dp(5), dp(5), dp(5)
+        card.addView(
+            makeText("✨ LOOK AND LEARN ✨", 14f, orange, true)
         )
+
+        val picture = ImageView(this).apply {
+            setImageResource(word.imageRes)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            adjustViewBounds = true
+            contentDescription = word.english
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+        }
 
         card.addView(
             picture,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(275)
+                dp(235)
             )
         )
 
-        val name = TextView(this)
-        name.text = word.english
-        name.textSize = 38f
-        name.setTextColor(darkBlue)
-        name.typeface = Typeface.create(
-            "sans-serif-rounded",
-            Typeface.BOLD
-        )
-        name.gravity = Gravity.CENTER
-        name.setPadding(
-            dp(3), dp(7), dp(3), dp(12)
-        )
-
-        card.addView(name)
-
-        page.addView(
-            card,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+        card.addView(
+            makeText(
+                word.english,
+                34f,
+                navy,
+                true
             )
         )
 
-        page.addView(space(10))
-
-        addText(
-            page,
-            "Listen and repeat!",
-            20f,
-            darkBlue,
-            true
+        card.addView(
+            makeText(
+                "Listen carefully and repeat!",
+                14f,
+                ink
+            )
         )
+
+        addCard(page, card, 8, 10)
 
         addButtonRow(
             page,
@@ -760,11 +707,11 @@ class MainActivity : Activity() {
             { speak(word.english) }
         )
 
-        val nextText =
+        val nextLabel =
             if (currentIndex == total - 1) {
-                "Finish Lesson  ✓"
+                "Finish ✓"
             } else {
-                "Next  ➜"
+                "Next ➜"
             }
 
         addButtonRow(
@@ -783,7 +730,7 @@ class MainActivity : Activity() {
                     ).show()
                 }
             },
-            nextText,
+            nextLabel,
             green,
             {
                 if (currentIndex < total - 1) {
@@ -804,11 +751,11 @@ class MainActivity : Activity() {
             }
         )
 
-        addButton(page, "Practice Quiz", orange) {
+        addButton(page, "🏆 Practice Quiz", orange) {
             startFruitQuiz()
         }
 
-        addButton(page, "Back to Home", darkBlue) {
+        addButton(page, "⌂ Back to Home", navy) {
             showHome()
         }
     }
@@ -819,21 +766,32 @@ class MainActivity : Activity() {
             "You completed the fruit lesson!"
         )
 
-        addText(
-            page,
-            "★  Amazing Work!  ★",
-            29f,
-            green,
-            true
+        val card = makeCard(30)
+        card.background = gradient(
+            intArrayOf(
+                Color.rgb(180, 255, 195),
+                Color.rgb(70, 210, 135)
+            ),
+            30
         )
-
-        addText(
-            page,
-            "You learned ${fruits.size} fruits!",
-            22f,
-            darkBlue,
-            true
+        card.addView(makeText("🎉 🏆 🎉", 48f))
+        card.addView(
+            makeText(
+                "Amazing Work!",
+                28f,
+                Color.WHITE,
+                true
+            )
         )
+        card.addView(
+            makeText(
+                "You learned ${fruits.size} fruits!",
+                19f,
+                Color.WHITE,
+                true
+            )
+        )
+        addCard(page, card, 12, 15)
 
         addButton(page, "Take a Quiz", green) {
             startFruitQuiz()
@@ -865,31 +823,37 @@ class MainActivity : Activity() {
         val correct = quizQuestions[quizIndex]
 
         val page = createPage(
-            "Fruit Quiz",
+            "Quiz",
             "Question ${quizIndex + 1} of ${quizQuestions.size}"
         )
 
-        addText(
-            page,
-            "Which word matches this picture?",
-            20f,
-            darkBlue,
-            true
+        val card = makeCard(28)
+        card.addView(
+            makeText(
+                "Which word matches this picture?",
+                19f,
+                navy,
+                true
+            )
         )
 
-        val picture = ImageView(this)
-        picture.setImageResource(correct.imageRes)
-        picture.scaleType = ImageView.ScaleType.FIT_CENTER
-        picture.adjustViewBounds = true
-        picture.contentDescription = correct.english
+        val picture = ImageView(this).apply {
+            setImageResource(correct.imageRes)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            adjustViewBounds = true
+            contentDescription = correct.english
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+        }
 
-        page.addView(
+        card.addView(
             picture,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(250)
+                dp(205)
             )
         )
+
+        addCard(page, card, 8, 12)
 
         val options = (
             listOf(correct) +
@@ -898,14 +862,18 @@ class MainActivity : Activity() {
             }.shuffled().take(3)
         ).shuffled()
 
-        for (option in options) {
-            addButton(page, option.english, blue) {
+        options.forEachIndexed { index, option ->
+            val colors = listOf(blue, green, orange, purple)
+            addButton(
+                page,
+                "${index + 1}.  ${option.english}",
+                colors[index]
+            ) {
                 if (option.english == correct.english) {
                     quizScore++
-
                     Toast.makeText(
                         this,
-                        "Great job!",
+                        "Great job! ⭐",
                         Toast.LENGTH_SHORT
                     ).show()
                 } else {
@@ -921,33 +889,22 @@ class MainActivity : Activity() {
             }
         }
 
-        addButton(page, "🔊 Listen", green) {
+        addButton(page, "🔊 Listen", pink) {
             speak(correct.english)
         }
 
-        addButton(page, "Home", darkBlue) {
+        addButton(page, "⌂ Home", navy) {
             showHome()
         }
     }
 
     private fun showQuizResult() {
         val page = createPage(
-            "Quiz Complete",
+            "Quiz Result",
             "You did a great job!"
         )
 
-        addText(
-            page,
-            "$quizScore / ${quizQuestions.size}",
-            48f,
-            green,
-            true
-        )
-
-        val best = prefs.getInt(
-            "fruit_best_score",
-            0
-        )
+        val best = prefs.getInt("fruit_best_score", 0)
 
         if (quizScore > best) {
             prefs.edit()
@@ -961,16 +918,40 @@ class MainActivity : Activity() {
             else -> "Good try! Practice makes progress!"
         }
 
-        addText(
-            page,
-            message,
-            21f,
-            darkBlue,
-            true
+        val card = makeCard(30)
+        card.background = gradient(
+            intArrayOf(
+                Color.rgb(255, 230, 145),
+                Color.rgb(255, 175, 90)
+            ),
+            30
         )
+
+        card.addView(makeText("🏆 ⭐ 🎉", 45f))
+        card.addView(
+            makeText(
+                "$quizScore / ${quizQuestions.size}",
+                48f,
+                Color.WHITE,
+                true
+            )
+        )
+        card.addView(
+            makeText(
+                message,
+                19f,
+                Color.WHITE,
+                true
+            )
+        )
+        addCard(page, card, 12, 15)
 
         addButton(page, "Try Again", green) {
             startFruitQuiz()
+        }
+
+        addButton(page, "My Progress", purple) {
+            showProgress()
         }
 
         addButton(page, "Home", blue) {
@@ -984,36 +965,44 @@ class MainActivity : Activity() {
             "Every step makes you better!"
         )
 
-        val completed = prefs.getInt(
-            "fruit_completed",
-            0
-        )
+        val completed = prefs.getInt("fruit_completed", 0)
+        val best = prefs.getInt("fruit_best_score", 0)
 
-        val best = prefs.getInt(
-            "fruit_best_score",
-            0
+        val card = makeCard(28)
+        card.addView(makeText("📊 🏅 ⭐", 43f))
+        card.addView(
+            makeText(
+                "Your Statistics",
+                24f,
+                navy,
+                true
+            )
         )
-
-        addText(
-            page,
-            "Fruit Learning Statistics",
-            22f,
-            darkBlue,
-            true
+        card.addView(
+            makeText(
+                "Completed lessons: $completed",
+                19f,
+                ink,
+                true
+            )
         )
-
-        addText(
-            page,
-            "Completed lessons: $completed"
+        card.addView(
+            makeText(
+                "Best quiz score: $best / 5",
+                19f,
+                ink,
+                true
+            )
         )
-
-        addText(
-            page,
-            "Best quiz score: $best / 5"
-        )
+        addCard(page, card, 12, 12)
 
         addButton(page, "Practice Quiz", green) {
             startFruitQuiz()
+        }
+
+        addButton(page, "Learn Fruits", orange) {
+            currentIndex = 0
+            showFruitPage()
         }
 
         addButton(page, "Home", blue) {
