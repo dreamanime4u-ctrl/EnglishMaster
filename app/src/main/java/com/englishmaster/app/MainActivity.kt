@@ -284,7 +284,7 @@ class MainActivity : Activity() {
 
         root = LinearLayout(this)
         root.orientation = LinearLayout.VERTICAL
-        root.setBackgroundColor(pageColor)
+        root.setBackgroundResource(R.drawable.kids_background)
 
         val scroll = ScrollView(this)
         scroll.isFillViewport = true
