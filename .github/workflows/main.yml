@@ -1,3 +1,4 @@
+
 name: Build EnglishMaster APK
 
 on:
@@ -21,18 +22,23 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK
+      - name: Prepare Android SDK
         run: |
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | sort -V | tail -n 1)
+
+          if [ -z "$SDKMANAGER" ]; then
+            echo "Android SDK manager not found"
+            exit 1
+          fi
+
+          yes | "$SDKMANAGER" --licenses || true
+          "$SDKMANAGER" --install "platforms;android-36" "build-tools;36.0.0"
 
       - name: Extract EnglishMaster
         run: |
-          ZIP_FILE="englishmaster (1).zip"
           mkdir -p source
-          unzip -q "$ZIP_FILE" -d source
+          unzip -q "englishmaster (1).zip" -d source
 
           SETTINGS=$(find source -name settings.gradle.kts -print -quit)
 
