@@ -1,0 +1,63 @@
+name: Build EnglishMaster APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'englishmaster (1).zip'
+      - '.github/workflows/main.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        run: |
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Extract EnglishMaster
+        run: |
+          ZIP_FILE="englishmaster (1).zip"
+          mkdir -p source
+          unzip -q "$ZIP_FILE" -d source
+
+          SETTINGS=$(find source -name settings.gradle.kts -print -quit)
+
+          if [ -z "$SETTINGS" ]; then
+            echo "Project settings.gradle.kts not found"
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$SETTINGS")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+          if [ ! -f "$PROJECT_DIR/gradlew" ]; then
+            echo "Gradle wrapper not found"
+            exit 1
+          fi
+
+      - name: Build APK
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: EnglishMaster-APK
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
