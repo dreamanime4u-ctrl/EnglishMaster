@@ -1,3 +1,4 @@
+
 package com.englishmaster.app
 
 import android.app.Activity
@@ -16,11 +17,17 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import java.util.Locale
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.MobileAds
 
 class MainActivity : Activity() {
 
     private var tts: TextToSpeech? = null
     private var ttsReady = false
+
+    private var bannerAd: AdView? = null
 
     private val prefs by lazy {
         getSharedPreferences("english_master_data", MODE_PRIVATE)
@@ -66,6 +73,8 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        MobileAds.initialize(this) {}
+
         window.statusBarColor = Color.rgb(39, 75, 160)
         window.navigationBarColor = Color.rgb(35, 55, 115)
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
@@ -80,6 +89,14 @@ class MainActivity : Activity() {
         }
 
         showHome()
+    }
+
+    private fun createBannerAd(): AdView {
+        return AdView(this).apply {
+            setAdSize(AdSize.BANNER)
+            adUnitId = "ca-app-pub-3940256099942544/6300978111"
+            loadAd(AdRequest.Builder().build())
+        }
     }
 
     private fun dp(value: Int): Int {
@@ -432,12 +449,26 @@ class MainActivity : Activity() {
         addCard(content, subtitleCard, 2, 10)
 
         scroll.addView(content)
+
         root.addView(
             scroll,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT
+                0,
+                1f
             )
+        )
+
+        bannerAd = createBannerAd()
+
+        root.addView(
+            bannerAd,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+            }
         )
 
         setContentView(root)
@@ -461,9 +492,7 @@ class MainActivity : Activity() {
             2
         )
 
-        hero.addView(
-            makeText("🌈", 48f)
-        )
+        hero.addView(makeText("🌈", 48f))
         hero.addView(
             makeText(
                 "Hello, Little Learner!",
@@ -499,19 +528,10 @@ class MainActivity : Activity() {
         )
         fruitCard.addView(makeText("🍎 🍌 🍇", 35f))
         fruitCard.addView(
-            makeText(
-                "Fruits Adventure",
-                21f,
-                Color.WHITE,
-                true
-            )
+            makeText("Fruits Adventure", 21f, Color.WHITE, true)
         )
         fruitCard.addView(
-            makeText(
-                "Discover 16 delicious fruits",
-                14f,
-                Color.WHITE
-            )
+            makeText("Discover 16 delicious fruits", 14f, Color.WHITE)
         )
         fruitCard.setOnClickListener {
             currentIndex = 0
@@ -529,19 +549,10 @@ class MainActivity : Activity() {
         )
         quizCard.addView(makeText("🏆 ⭐ 🎯", 35f))
         quizCard.addView(
-            makeText(
-                "Fruit Challenge",
-                21f,
-                Color.WHITE,
-                true
-            )
+            makeText("Fruit Challenge", 21f, Color.WHITE, true)
         )
         quizCard.addView(
-            makeText(
-                "Test what you have learned",
-                14f,
-                Color.WHITE
-            )
+            makeText("Test what you have learned", 14f, Color.WHITE)
         )
         quizCard.setOnClickListener {
             startFruitQuiz()
@@ -553,28 +564,13 @@ class MainActivity : Activity() {
 
         val stats = makeCard(25)
         stats.addView(
-            makeText(
-                "🏅 YOUR LEARNING JOURNEY",
-                18f,
-                navy,
-                true
-            )
+            makeText("🏅 YOUR LEARNING JOURNEY", 18f, navy, true)
         )
         stats.addView(
-            makeText(
-                "Completed lessons: $completed",
-                17f,
-                ink,
-                true
-            )
+            makeText("Completed lessons: $completed", 17f, ink, true)
         )
         stats.addView(
-            makeText(
-                "Best quiz score: $best / 5",
-                17f,
-                ink,
-                true
-            )
+            makeText("Best quiz score: $best / 5", 17f, ink, true)
         )
         addCard(page, stats, 12, 8)
 
@@ -679,20 +675,11 @@ class MainActivity : Activity() {
         )
 
         card.addView(
-            makeText(
-                word.english,
-                34f,
-                navy,
-                true
-            )
+            makeText(word.english, 34f, navy, true)
         )
 
         card.addView(
-            makeText(
-                "Listen carefully and repeat!",
-                14f,
-                ink
-            )
+            makeText("Listen carefully and repeat!", 14f, ink)
         )
 
         addCard(page, card, 8, 10)
@@ -708,11 +695,7 @@ class MainActivity : Activity() {
         )
 
         val nextLabel =
-            if (currentIndex == total - 1) {
-                "Finish ✓"
-            } else {
-                "Next ➜"
-            }
+            if (currentIndex == total - 1) "Finish ✓" else "Next ➜"
 
         addButtonRow(
             page,
@@ -737,10 +720,7 @@ class MainActivity : Activity() {
                     currentIndex++
                     showFruitPage()
                 } else {
-                    val count = prefs.getInt(
-                        "fruit_completed",
-                        0
-                    ) + 1
+                    val count = prefs.getInt("fruit_completed", 0) + 1
 
                     prefs.edit()
                         .putInt("fruit_completed", count)
@@ -776,12 +756,7 @@ class MainActivity : Activity() {
         )
         card.addView(makeText("🎉 🏆 🎉", 48f))
         card.addView(
-            makeText(
-                "Amazing Work!",
-                28f,
-                Color.WHITE,
-                true
-            )
+            makeText("Amazing Work!", 28f, Color.WHITE, true)
         )
         card.addView(
             makeText(
@@ -937,12 +912,7 @@ class MainActivity : Activity() {
             )
         )
         card.addView(
-            makeText(
-                message,
-                19f,
-                Color.WHITE,
-                true
-            )
+            makeText(message, 19f, Color.WHITE, true)
         )
         addCard(page, card, 12, 15)
 
@@ -971,28 +941,13 @@ class MainActivity : Activity() {
         val card = makeCard(28)
         card.addView(makeText("📊 🏅 ⭐", 43f))
         card.addView(
-            makeText(
-                "Your Statistics",
-                24f,
-                navy,
-                true
-            )
+            makeText("Your Statistics", 24f, navy, true)
         )
         card.addView(
-            makeText(
-                "Completed lessons: $completed",
-                19f,
-                ink,
-                true
-            )
+            makeText("Completed lessons: $completed", 19f, ink, true)
         )
         card.addView(
-            makeText(
-                "Best quiz score: $best / 5",
-                19f,
-                ink,
-                true
-            )
+            makeText("Best quiz score: $best / 5", 19f, ink, true)
         )
         addCard(page, card, 12, 12)
 
@@ -1011,8 +966,12 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        bannerAd?.destroy()
+        bannerAd = null
+
         tts?.stop()
         tts?.shutdown()
+
         super.onDestroy()
     }
 }
