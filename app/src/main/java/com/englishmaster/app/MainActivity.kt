@@ -9,6 +9,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -17,6 +18,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import java.util.Locale
+
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
@@ -27,7 +29,9 @@ class MainActivity : Activity() {
     private var tts: TextToSpeech? = null
     private var ttsReady = false
 
+    // One reusable banner for all pages
     private var bannerAd: AdView? = null
+    private var adsInitialized = false
 
     private val prefs by lazy {
         getSharedPreferences("english_master_data", MODE_PRIVATE)
@@ -73,7 +77,11 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        MobileAds.initialize(this) {}
+        MobileAds.initialize(this) {
+            runOnUiThread {
+                adsInitialized = true
+            }
+        }
 
         window.statusBarColor = Color.rgb(39, 75, 160)
         window.navigationBarColor = Color.rgb(35, 55, 115)
@@ -91,12 +99,21 @@ class MainActivity : Activity() {
         showHome()
     }
 
+    // Create the banner only once
     private fun createBannerAd(): AdView {
         return AdView(this).apply {
             setAdSize(AdSize.BANNER)
             adUnitId = "ca-app-pub-3940256099942544/6300978111"
             loadAd(AdRequest.Builder().build())
         }
+    }
+
+    // Reuse the same banner on every page
+    private fun getBannerAd(): AdView {
+        if (bannerAd == null) {
+            bannerAd = createBannerAd()
+        }
+        return bannerAd!!
     }
 
     private fun dp(value: Int): Int {
@@ -459,10 +476,13 @@ class MainActivity : Activity() {
             )
         )
 
-        bannerAd = createBannerAd()
+        // Reuse the same AdView instead of creating a new one
+        val ad = getBannerAd()
+
+        (ad.parent as? ViewGroup)?.removeView(ad)
 
         root.addView(
-            bannerAd,
+            ad,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -965,12 +985,23 @@ class MainActivity : Activity() {
         }
     }
 
+    override fun onPause() {
+        bannerAd?.pause()
+        super.onPause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        bannerAd?.resume()
+    }
+
     override fun onDestroy() {
         bannerAd?.destroy()
         bannerAd = null
 
         tts?.stop()
         tts?.shutdown()
+        tts = null
 
         super.onDestroy()
     }
