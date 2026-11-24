@@ -1,3 +1,4 @@
+
 name: Build EnglishMaster APK
 
 on:
@@ -23,10 +24,17 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Check AndroidManifest XML
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxml2-utils
+          xmllint --noout app/src/main/AndroidManifest.xml
+
       - name: Build APK
-        run: gradle assembleDebug
+        run: gradle assembleDebug --stacktrace --info
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: EnglishMaster-APK
